@@ -38,6 +38,8 @@ export interface GameState {
   wakePort: WakePoint[];
   wakeStbd: WakePoint[];
   wakeTimer: number;
+  /** 0..1, decays after a contact; drives the render layer's collision-flash overlay. */
+  flash: number;
 }
 
 /**
@@ -76,6 +78,7 @@ export function createState(levelIndex: number, controls: Controls = createContr
     wakePort: [],
     wakeStbd: [],
     wakeTimer: 0,
+    flash: 0,
   };
   state.goals = evaluateGoals(state.boat, state.controls, state.level.goal);
   return state;
@@ -112,7 +115,9 @@ export function physicsStep(state: GameState, dt: number): StepStatus {
   state.time += dt;
   integrateBoat(state.boat, state.controls, state.env, dt);
   updateWake(state, dt);
+  state.flash = Math.max(0, state.flash - dt * 1.8);
   const { hitSpeed, contacted } = resolveCollisions(state.boat, state.obstacles);
+  if (hitSpeed > CONTACT_SPEED) state.flash = 1;
 
   if (hitSpeed > CRASH_SPEED) {
     state.mode = 'crashed';

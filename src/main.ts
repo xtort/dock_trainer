@@ -29,6 +29,7 @@ const canvas = document.getElementById('sea') as HTMLCanvasElement;
 let helpPreviousMode: GameState['mode'] | null = null;
 let accumulator = 0;
 let lastTime = 0;
+let visualTime = 0;
 
 function startPlaying(): void {
   if (state.mode === 'ready' || state.mode === 'paused') {
@@ -117,6 +118,7 @@ function tick(now: number): void {
   const frameDt = Math.min(MAX_FRAME, (now - lastTime) / 1000);
   lastTime = now;
   accumulator += frameDt;
+  if (state.mode === 'playing') visualTime += frameDt;
 
   while (accumulator >= FIXED_DT) {
     input.sample(state.controls, FIXED_DT);
@@ -132,7 +134,7 @@ function tick(now: number): void {
     accumulator -= FIXED_DT;
   }
 
-  drawScene(canvas, state);
+  drawScene(canvas, state, visualTime);
   updateHud(state);
   requestAnimationFrame(tick);
 }

@@ -4,6 +4,16 @@ import type { GoalRegion, Obstacle } from '../physics/types';
 
 export const WORLD = { w: 152, h: 95 };
 
+/** Position + hull proportions for a static neighbor boat, for detailed rendering
+ * (collision still uses the generic `obstacles` polygons — this is render-only). */
+export interface RenderBoat {
+  x: number;
+  y: number;
+  h: number;
+  length: number;
+  beam: number;
+}
+
 export interface LevelDef {
   name: string;
   berth: string;
@@ -19,6 +29,7 @@ export interface LevelDef {
   current: number;
   currentDir: number;
   obstacles: Obstacle[];
+  neighborBoats: RenderBoat[];
 }
 
 const GOAL_DEPTH = 20; // fixed goal-region depth; must clear the 14.33m hull with margin
@@ -56,7 +67,9 @@ interface SharedSlipOptions {
  * raft-up spacing isn't a published spec — there is deliberately little slack
  * here; a real 41 ft slip shared by two ~15 ft-beam boats is genuinely tight.
  */
-function buildSharedSlipMarina(opts: SharedSlipOptions): { obstacles: Obstacle[]; goal: GoalRegion; targetX: number } {
+function buildSharedSlipMarina(
+  opts: SharedSlipOptions,
+): { obstacles: Obstacle[]; goal: GoalRegion; targetX: number; boats: RenderBoat[] } {
   const slipWidth = 41 * FT; // ~12.50 m, shared by two boats
   const neighborBeam = 15.5 * FT; // ~4.72 m
   const neighborLength = 14.3; // similar size-class to the player's own 4788
@@ -89,17 +102,25 @@ function buildSharedSlipMarina(opts: SharedSlipOptions): { obstacles: Obstacle[]
   const leftSlipCenterX = targetLeft - pilingWidth - half;
   const rightSlipCenterX = targetRight + pilingWidth + half;
 
-  function pairedBoats(slipCenter: number, idPrefix: string): Obstacle[] {
+  function pairedBoats(slipCenter: number, idPrefix: string): { obstacles: Obstacle[]; boats: RenderBoat[] } {
     const left = slipCenter - half + dockedMargin + neighborBeam / 2;
     const right = slipCenter + half - dockedMargin - neighborBeam / 2;
-    return [
-      { id: `${idPrefix}A`, poly: transformPoly(hullLocal(neighborLength, neighborBeam), left, y, 0) },
-      { id: `${idPrefix}B`, poly: transformPoly(hullLocal(neighborLength, neighborBeam), right, y, 0) },
-    ];
+    return {
+      obstacles: [
+        { id: `${idPrefix}A`, poly: transformPoly(hullLocal(neighborLength, neighborBeam), left, y, 0) },
+        { id: `${idPrefix}B`, poly: transformPoly(hullLocal(neighborLength, neighborBeam), right, y, 0) },
+      ],
+      boats: [
+        { x: left, y, h: 0, length: neighborLength, beam: neighborBeam },
+        { x: right, y, h: 0, length: neighborLength, beam: neighborBeam },
+      ],
+    };
   }
 
   const rowLeft = leftSlipCenterX - half;
   const rowRight = rightSlipCenterX + half;
+  const slipA = pairedBoats(leftSlipCenterX, 'slipA');
+  const slipC = pairedBoats(rightSlipCenterX, 'slipC');
 
   const obstacles: Obstacle[] = [
     { id: 'pier', poly: rectPoly({ x: rowLeft - 3, y: PIER_Y0, w: rowRight - rowLeft + 6, h: PIER_HEIGHT }) },
@@ -108,9 +129,15 @@ function buildSharedSlipMarina(opts: SharedSlipOptions): { obstacles: Obstacle[]
     { id: 'pilingC', poly: rectPoly({ x: targetRight, y: FINGER_Y0, w: pilingWidth, h: FINGER_LENGTH }) },
     { id: 'pilingD', poly: rectPoly({ x: rightSlipCenterX + half, y: FINGER_Y0, w: pilingWidth, h: FINGER_LENGTH }) },
     { id: 'neighborBoat', poly: transformPoly(hullLocal(neighborLength, neighborBeam), neighborCenterX, y, 0) },
-    ...pairedBoats(leftSlipCenterX, 'slipA'),
-    ...pairedBoats(rightSlipCenterX, 'slipC'),
+    ...slipA.obstacles,
+    ...slipC.obstacles,
     ...worldBoundaries(),
+  ];
+
+  const boats: RenderBoat[] = [
+    { x: neighborCenterX, y, h: 0, length: neighborLength, beam: neighborBeam },
+    ...slipA.boats,
+    ...slipC.boats,
   ];
 
   const goal: GoalRegion = {
@@ -121,7 +148,7 @@ function buildSharedSlipMarina(opts: SharedSlipOptions): { obstacles: Obstacle[]
     heading: 0,
   };
 
-  return { obstacles, goal, targetX: playerCenterX };
+  return { obstacles, goal, targetX: playerCenterX, boats };
 }
 
 const NEIGHBOR_PORT = buildSharedSlipMarina({ centerX: 76, neighborSide: 'port' });
@@ -142,6 +169,7 @@ const LEVELS: LevelDef[] = [
     current: 0,
     currentDir: 90,
     obstacles: NEIGHBOR_PORT.obstacles,
+    neighborBoats: NEIGHBOR_PORT.boats,
   },
   {
     name: 'Walking sideways',
@@ -157,6 +185,7 @@ const LEVELS: LevelDef[] = [
     current: 0,
     currentDir: 90,
     obstacles: NEIGHBOR_PORT.obstacles,
+    neighborBoats: NEIGHBOR_PORT.boats,
   },
   {
     name: 'Pivot turn',
@@ -172,6 +201,7 @@ const LEVELS: LevelDef[] = [
     current: 0,
     currentDir: 90,
     obstacles: NEIGHBOR_PORT.obstacles,
+    neighborBoats: NEIGHBOR_PORT.boats,
   },
   {
     name: 'Off-center rudder',
@@ -188,6 +218,7 @@ const LEVELS: LevelDef[] = [
     current: 0,
     currentDir: 90,
     obstacles: NEIGHBOR_PORT.obstacles,
+    neighborBoats: NEIGHBOR_PORT.boats,
   },
   {
     name: 'Wind and current',
@@ -203,6 +234,7 @@ const LEVELS: LevelDef[] = [
     current: 0.5,
     currentDir: 120,
     obstacles: NEIGHBOR_PORT.obstacles,
+    neighborBoats: NEIGHBOR_PORT.boats,
   },
   {
     name: 'The other side',
@@ -218,6 +250,7 @@ const LEVELS: LevelDef[] = [
     current: 0,
     currentDir: 90,
     obstacles: NEIGHBOR_STBD.obstacles,
+    neighborBoats: NEIGHBOR_STBD.boats,
   },
 ];
 
