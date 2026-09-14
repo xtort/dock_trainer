@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0c2028">
+<meta name="description" content="Practice docking a twin-screw Bayliner 4788 with independent port/starboard engines, a bow and stern thruster, and real hull physics.">
+<title>Twin Screw Docking Trainer</title>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brandmark" aria-hidden="true">&#9875;</div>
+      <div>
+        <h1><span>Twin Screw</span> Docking Trainer</h1>
+        <div class="vessel-info">Bayliner 4788 &middot; Twin diesel &middot; Bow &amp; stern thrusters</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="button ghost" id="helpButton">How to play</button>
+      <button class="button" id="pauseButton">Pause <span class="key">P</span></button>
+      <button class="button" id="restartButton">Restart <span class="key">T</span></button>
+    </div>
+  </header>
+  <main>
+    <div class="workspace">
+      <section class="play-panel" aria-label="Docking simulator">
+        <nav class="challenge-tabs" id="challengeTabs" role="tablist" aria-label="Docking challenges"></nav>
+        <div class="sea-hud">
+          <div class="hud-instruments">
+            <div class="instrument"><span class="label">Speed</span><output id="speed">0.00</output><span class="unit">kt</span></div>
+            <div class="instrument"><span class="label">Heading</span><output id="heading">000&deg;</output></div>
+            <div class="instrument"><span class="label">To berth</span><output id="distance">0</output><span class="unit">m</span></div>
+          </div>
+          <div class="state-label" id="stateLabel">Ready at the helm</div>
+        </div>
+        <div class="sea-stage" id="stage">
+          <canvas id="sea" aria-label="Top-down marina. Steer the twin-screw motoryacht into the green berth." role="img"></canvas>
+          <div class="scene-note">FICTIONAL MARINA</div>
+          <div class="notice" id="notice" role="status"></div>
+          <div class="overlay" id="overlay">
+            <div class="overlay-card">
+              <div class="eyebrow" id="overlayEyebrow">Challenge 01 / 06</div>
+              <h2 id="overlayTitle">Straight-in approach.</h2>
+              <p id="overlayText"></p>
+              <button class="button primary" id="overlayAction">Take the helm &rarr;</button>
+            </div>
+          </div>
+        </div>
+      </section>
+      <aside class="sidebar" aria-label="Mission and conditions">
+        <section class="side-card">
+          <div class="eyebrow" style="margin-bottom:7px">Mission</div>
+          <h2 id="missionTitle">Berth 01</h2>
+          <p id="techniqueLabel"></p>
+          <ul class="goal-list">
+            <li id="goalInside"><span class="check">&#10003;</span>Hull inside the berth</li>
+            <li id="goalHeading"><span class="check">&#10003;</span>Bow aligned within 12&deg;</li>
+            <li id="goalSpeed"><span class="check">&#10003;</span>Speed below 0.35 kt</li>
+            <li id="goalNeutral"><span class="check">&#10003;</span>Engines &amp; thrusters neutral</li>
+          </ul>
+          <div class="settle-row"><span>Securing lines</span><output id="settleTime">0.0 / 3.0 s</output></div>
+          <div class="meter-track" role="progressbar" aria-label="Securing lines" aria-valuemin="0" aria-valuemax="3" id="settleMeter"><div class="meter-fill" id="settleFill"></div></div>
+          <div class="run-stats"><div>Elapsed<output id="elapsed">00:00</output></div><div>Dock contacts<output id="contacts">0</output></div></div>
+        </section>
+        <div class="hint-card"><p><strong>At the helm</strong><span id="levelHint"></span></p></div>
+      </aside>
+    </div>
+    <section class="helm" aria-label="Vessel controls">
+      <div class="helm-section engine-console">
+        <div class="helm-title"><h2>Port engine</h2></div>
+        <div class="gear-stack" aria-label="Port shift">
+          <div class="gear-indicator" data-gear="1"><span>Ahead</span><span class="key">A</span></div>
+          <div class="gear-indicator" data-gear="0"><span>Neutral</span></div>
+          <div class="gear-indicator" data-gear="-1"><span>Astern</span><span class="key">Z</span></div>
+        </div>
+        <output class="gear-readout" id="portShiftValue">NEUTRAL</output>
+        <div class="throttle-block">
+          <div class="throttle-title"><span>Throttle</span><output id="portThrottleValue">IDLE</output></div>
+          <div class="throttle-track"><div class="throttle-fill" id="portThrottleFill"></div></div>
+          <div class="throttle-keys"><span class="key">J</span> up &middot; <span class="key">N</span> down</div>
+        </div>
+      </div>
+      <div class="helm-section center-strip">
+        <div class="rudder-control">
+          <div class="helm-title"><h2>Rudder</h2><output id="rudderValue">AMIDSHIPS</output></div>
+          <div class="rudder-track"><div class="rudder-tick"></div><div class="rudder-needle" id="rudderNeedle"></div></div>
+          <div class="helm-footer"><span><span class="key">&larr;</span>/<span class="key">&rarr;</span> turn</span><span><span class="key">&darr;</span> center</span></div>
+        </div>
+        <div class="thruster">
+          <div class="proportional-title"><span>Bow thruster</span><output id="bowValue">0%</output></div>
+          <div class="thruster-track"><div class="thruster-fill" id="bowFill"></div></div>
+          <div class="proportional-keys"><span class="key">Q</span> port &middot; stbd <span class="key">E</span></div>
+        </div>
+        <div class="thruster">
+          <div class="proportional-title"><span>Stern thruster</span><output id="sternValue">0%</output></div>
+          <div class="thruster-track"><div class="thruster-fill" id="sternFill"></div></div>
+          <div class="proportional-keys"><span class="key">D</span> port &middot; stbd <span class="key">G</span></div>
+        </div>
+      </div>
+      <div class="helm-section engine-console">
+        <div class="helm-title"><h2>Starboard engine</h2></div>
+        <div class="gear-stack" aria-label="Starboard shift">
+          <div class="gear-indicator" data-gear="1"><span>Ahead</span><span class="key">S</span></div>
+          <div class="gear-indicator" data-gear="0"><span>Neutral</span></div>
+          <div class="gear-indicator" data-gear="-1"><span>Astern</span><span class="key">X</span></div>
+        </div>
+        <output class="gear-readout" id="stbdShiftValue">NEUTRAL</output>
+        <div class="throttle-block">
+          <div class="throttle-title"><span>Throttle</span><output id="stbdThrottleValue">IDLE</output></div>
+          <div class="throttle-track"><div class="throttle-fill" id="stbdThrottleFill"></div></div>
+          <div class="throttle-keys"><span class="key">K</span> up &middot; <span class="key">M</span> down</div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer"><span>Small inputs. Give her time. Watch both engines.</span><button class="help-link" id="modelButton">Controls &amp; handling notes</button></footer>
+  <div class="live-announcement" aria-live="polite" id="announcement"></div>
+</div>
+<dialog id="helpDialog" aria-labelledby="helpTitle">
+  <div class="help-content">
+    <div class="help-top"><h2 id="helpTitle">Take the helm.</h2><button class="button" id="closeHelp">Close</button></div>
+    <p>Put the whole hull inside the green berth, bow aligned, slow below 0.35 knots, both engines and thrusters neutral. Hold steady for 3 seconds.</p>
+    <table class="help-table">
+      <tbody>
+        <tr><td><span class="key">A</span>/<span class="key">Z</span></td><td>Port shift: step ahead / astern (neutral is the middle notch)</td></tr>
+        <tr><td><span class="key">S</span>/<span class="key">X</span></td><td>Starboard shift: step ahead / astern</td></tr>
+        <tr><td><span class="key">J</span>/<span class="key">N</span></td><td>Port throttle up / down</td></tr>
+        <tr><td><span class="key">K</span>/<span class="key">M</span></td><td>Starboard throttle up / down</td></tr>
+        <tr><td><span class="key">&larr;</span>/<span class="key">&rarr;</span> &middot; <span class="key">&darr;</span></td><td>Rudder port / starboard &middot; center rudder</td></tr>
+        <tr><td><span class="key">Q</span>/<span class="key">E</span></td><td>Bow thruster port / starboard (hold; springs to neutral on release)</td></tr>
+        <tr><td><span class="key">D</span>/<span class="key">G</span></td><td>Stern thruster port / starboard (hold; springs to neutral on release)</td></tr>
+        <tr><td><span class="key">P</span> &middot; <span class="key">T</span></td><td>Pause / resume &middot; restart this challenge</td></tr>
+      </tbody>
+    </table>
+    <h3>Handling a twin-screw boat</h3>
+    <ul>
+      <li>Opposing the engines (one ahead, one astern) pivots the boat and, thanks to prop walk, also shifts it sideways &mdash; it is not a passive drift, expect to actively manage the rotation.</li>
+      <li>The rudder is modeled but never required. Left off-center, it drags and adds unwanted yaw the moment you use an engine or thruster &mdash; check it before you blame the throttle.</li>
+      <li>Both thrusters in the same direction move you sideways with little rotation; that is what they are for.</li>
+      <li>Prop walk is not symmetric between the two engines &mdash; the same maneuver can feel different depending on which side you are working against.</li>
+    </ul>
+    <h3>About the model</h3>
+    <p class="model-note">Real Bayliner 4788 dimensions, mass, and estimated shaft spacing; drag, added-mass, prop-walk, and thruster coefficients are gameplay-tuned, not sea-trial calibrated. No waves, shallow-water effects, bank suction, or mooring lines.</p>
+  </div>
+</dialog>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
